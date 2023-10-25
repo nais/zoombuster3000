@@ -1,0 +1,32 @@
+name: Upload zoom deb
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron:  '0 12 * * *'
+
+jobs:
+  build:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    name: Build and push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Authenticate to Google Cloud'
+        id: 'auth'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          workload_identity_provider: ${{ secrets.NAIS_PPA_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: 'zoom-repo-update-deb-uploader@nais-ppa.iam.gserviceaccount.com'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+        with:
+          install_components: beta
+
+      - name: 'Upload zoom deb file to repository'
+        run: |
+          curl -L https://zoom.us/client/latest/zoom_amd64.deb -o zoom.deb
+          gcloud --project nais-ppa beta artifacts apt upload zoom --quiet --source zoom.deb --location europe-north1
